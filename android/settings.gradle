@@ -1,11 +1,5 @@
 pluginManagement {
-    def flutterSdkPath = {
-        def properties = new Properties()
-        file("local.properties").withInputStream { properties.load(it) }
-        def flutterSdkPath = properties.getProperty("flutter.sdk")
-        assert flutterSdkPath != null, "flutter.sdk not set in local.properties"
-        return flutterSdkPath
-    }()
+    def flutterSdkPath = System.getenv("FLUTTER_ROOT") ?: "/opt/hostedtoolcache/flutter/3.24.5/x64"
 
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
@@ -22,4 +16,4 @@ plugins {
     id "org.jetbrains.kotlin.android" version "1.9.10" apply false
 }
 
-include ":app"
+include ":app" 
