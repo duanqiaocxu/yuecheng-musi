@@ -26,22 +26,17 @@ jobs:
 
       - name: Create local.properties
         run: |
-          echo "sdk.dir=$ANDROID_HOME" > android/local.properties
-          echo "flutter.sdk=$FLUTTER_ROOT" >> android/local.properties
+          echo "sdk.dir=/usr/local/lib/android/sdk" > android/local.properties
+          echo "flutter.sdk=${FLUTTER_ROOT}" >> android/local.properties
           echo "flutter.buildMode=release" >> android/local.properties
           echo "flutter.versionName=1.0.0" >> android/local.properties
           echo "flutter.versionCode=1" >> android/local.properties
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
 
       - name: Install dependencies
         run: flutter pub get
 
       - name: Build APK
         run: flutter build apk --release --split-per-abi
-        env:
-          ANDROID_HOME: /usr/local/lib/android/sdk
-          FLUTTER_ROOT: ${{ env.FLUTTER_ROOT }}
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
