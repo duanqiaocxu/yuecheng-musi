@@ -29,14 +29,16 @@ jobs:
 
       - name: Copy our source files
         run: |
-          rm -rf yuec_app/lib yuec_app/assets
+          rm -rf yuec_app/lib yuec_app/assets yuec_app/pubspec.lock yuec_app/.dart_tool
           cp pubspec.yaml yuec_app/
           cp -r lib yuec_app/
           cp -r assets yuec_app/
           cp analysis_options.yaml yuec_app/
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Clean and get dependencies
+        run: |
+          flutter clean
+          flutter pub get
         working-directory: yuec_app
 
       - name: Build APK
