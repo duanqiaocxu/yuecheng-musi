@@ -27,8 +27,13 @@ jobs:
       - name: Create Flutter project
         run: flutter create --org com.yuec yuec_app
 
-      - name: Copy source files
-        run: cp -r pubspec.yaml lib assets analysis_options.yaml yuec_app/
+      - name: Copy our source files
+        run: |
+          rm -rf yuec_app/lib yuec_app/assets
+          cp pubspec.yaml yuec_app/
+          cp -r lib yuec_app/
+          cp -r assets yuec_app/
+          cp analysis_options.yaml yuec_app/
 
       - name: Install dependencies
         run: flutter pub get
