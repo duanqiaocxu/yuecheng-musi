@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -21,25 +21,18 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.5'
           channel: stable
 
-      - name: Create Flutter project and build
-        shell: bash
+      - name: Build
         run: |
-          mkdir -p /tmp/yuec-build
-          cd /tmp/yuec-build
-          flutter create --org com.yuec --project-name yuec .
-          cp $GITHUB_WORKSPACE/pubspec.yaml .
-          cp -r $GITHUB_WORKSPACE/lib .
-          cp -r $GITHUB_WORKSPACE/assets . 2>/dev/null || true
-          cp $GITHUB_WORKSPACE/analysis_options.yaml . 2>/dev/null || true
+          rm -rf android ios test
+          flutter create --org com.yuec --project-name yuec --platforms android .
           flutter pub get
           flutter build apk --release --split-per-abi
 
-      - name: Upload APK
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: yuec-apk
-          path: /tmp/yuec-build/build/app/outputs/flutter-apk/*.apk
+          path: build/app/outputs/flutter-apk/*.apk
           retention-days: 30
