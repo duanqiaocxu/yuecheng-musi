@@ -28,12 +28,7 @@ jobs:
         run: flutter create --org com.yuec yuec_app
 
       - name: Copy source files
-        run: |
-          cp pubspec.yaml yuec_app/
-          cp -r lib yuec_app/
-          cp -r assets yuec_app/
-          cp analysis_options.yaml yuec_app/
-        working-directory: ${{ github.workspace }}
+        run: cp -r pubspec.yaml lib assets analysis_options.yaml yuec_app/
 
       - name: Install dependencies
         run: flutter pub get
