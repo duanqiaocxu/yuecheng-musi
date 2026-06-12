@@ -24,8 +24,33 @@ jobs:
           flutter-version: '3.24.5'
           channel: stable
 
-      - name: Install dependencies
-        run: flutter pub get
+      - name: Save source files
+        run: |
+          mkdir -p /tmp/yuec-src
+          cp -r lib/ /tmp/yuec-src/
+          cp pubspec.yaml /tmp/yuec-src/
+          cp -r assets/ /tmp/yuec-src/ 2>/dev/null || true
+          cp analysis_options.yaml /tmp/yuec-src/ 2>/dev/null || true
+
+      - name: Create Flutter project from scratch
+        run: |
+          cd /tmp
+          flutter create --org com.yuec --project-name yuec yuec-clean
+          rm -rf yuec-clean/pubspec.yaml yuec-clean/lib/main.dart
+          cp /tmp/yuec-src/pubspec.yaml yuec-clean/
+          cp -r /tmp/yuec-src/lib/ yuec-clean/
+          [ -d /tmp/yuec-src/assets ] && cp -r /tmp/yuec-src/assets/ yuec-clean/
+          cp /tmp/yuec-src/analysis_options.yaml yuec-clean/
 
       - name: Build APK
-        run: flutter build apk --release --split-per-abi
+        run: |
+          cd /tmp/yuec-clean
+          flutter pub get
+          flutter build apk --release --split-per-abi
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: yuec-apk
+          path: /tmp/yuec-clean/build/app/outputs/flutter-apk/*.apk
+          retention-days: 30
