@@ -24,17 +24,8 @@ jobs:
           flutter-version: '3.24.5'
           channel: stable
 
-      - name: Check current project
-        run: |
-          ls -la
-
       - name: Install dependencies
         run: flutter pub get
-
-      - name: List files
-        run: |
-          ls lib/
-          cat pubspec.yaml
 
       - name: Build APK
         run: flutter build apk --release --split-per-abi
