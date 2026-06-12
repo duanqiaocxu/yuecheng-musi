@@ -25,7 +25,7 @@ jobs:
           channel: stable
 
       - name: Create Flutter project
-        run: flutter create --project-name yuec --org com.yuec . --platforms android
+        run: flutter create --org com.yuec --platforms android .
 
       - name: Install dependencies
         run: flutter pub get
@@ -39,3 +39,4 @@ jobs:
           name: yuec-apk
           path: |
             build/app/outputs/flutter-apk/*.apk
+          retention-days: 30
