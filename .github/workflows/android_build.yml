@@ -24,27 +24,16 @@ jobs:
           flutter-version: '3.24.5'
           channel: stable
 
-      - name: Save source files
+      - name: Create Flutter project and build
+        shell: bash
         run: |
-          mkdir -p /tmp/yuec-src
-          cp -r lib/ /tmp/yuec-src/
-          cp pubspec.yaml /tmp/yuec-src/
-          cp -r assets/ /tmp/yuec-src/ 2>/dev/null || true
-          cp analysis_options.yaml /tmp/yuec-src/ 2>/dev/null || true
-
-      - name: Create Flutter project from scratch
-        run: |
-          cd /tmp
-          flutter create --org com.yuec --project-name yuec yuec-clean
-          rm -rf yuec-clean/pubspec.yaml yuec-clean/lib/main.dart
-          cp /tmp/yuec-src/pubspec.yaml yuec-clean/
-          cp -r /tmp/yuec-src/lib/ yuec-clean/
-          [ -d /tmp/yuec-src/assets ] && cp -r /tmp/yuec-src/assets/ yuec-clean/
-          cp /tmp/yuec-src/analysis_options.yaml yuec-clean/
-
-      - name: Build APK
-        run: |
-          cd /tmp/yuec-clean
+          mkdir -p /tmp/yuec-build
+          cd /tmp/yuec-build
+          flutter create --org com.yuec --project-name yuec .
+          cp $GITHUB_WORKSPACE/pubspec.yaml .
+          cp -r $GITHUB_WORKSPACE/lib .
+          cp -r $GITHUB_WORKSPACE/assets . 2>/dev/null || true
+          cp $GITHUB_WORKSPACE/analysis_options.yaml . 2>/dev/null || true
           flutter pub get
           flutter build apk --release --split-per-abi
 
@@ -52,5 +41,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: yuec-apk
-          path: /tmp/yuec-clean/build/app/outputs/flutter-apk/*.apk
+          path: /tmp/yuec-build/build/app/outputs/flutter-apk/*.apk
           retention-days: 30
