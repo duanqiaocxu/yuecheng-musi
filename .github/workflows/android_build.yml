@@ -25,18 +25,28 @@ jobs:
           channel: stable
 
       - name: Create Flutter project
-        run: flutter create --org com.yuec --platforms android .
+        run: flutter create --org com.yuec yuec_app
+
+      - name: Copy source files
+        run: |
+          cp pubspec.yaml yuec_app/
+          cp -r lib yuec_app/
+          cp -r assets yuec_app/
+          cp analysis_options.yaml yuec_app/
+        working-directory: ${{ github.workspace }}
 
       - name: Install dependencies
         run: flutter pub get
+        working-directory: yuec_app
 
       - name: Build APK
         run: flutter build apk --release --split-per-abi
+        working-directory: yuec_app
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: yuec-apk
           path: |
-            build/app/outputs/flutter-apk/*.apk
+            yuec_app/build/app/outputs/flutter-apk/*.apk
           retention-days: 30
