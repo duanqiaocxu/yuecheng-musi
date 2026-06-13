@@ -30,17 +30,27 @@ jobs:
           flutter pub get
           flutter build apk --debug --split-per-abi
 
-      - name: Sign APK with apksigner
+      - name: Sign with apksigner
         run: |
           keytool -genkey -v -keystore /tmp/release.keystore \
             -alias yuec -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass yuec123456 -keypass yuec123456 \
             -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
+          ANDROID_SDK_ROOT="/usr/local/lib/android/sdk"
+          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner"
+          if [ ! -f "$APKSIGNER" ]; then
+            APKSIGNER="$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner"
+          fi
+          if [ ! -f "$APKSIGNER" ]; then
+            APKSIGNER=$(find $ANDROID_SDK_ROOT/build-tools -name "apksigner" | head -1)
+          fi
+          echo "Using apksigner: $APKSIGNER"
           for apk in build/app/outputs/flutter-apk/*.apk; do
             echo "Signing $apk"
-            jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
-              -keystore /tmp/release.keystore -storepass yuec123456 \
-              -keypass yuec123456 "$apk" yuec
+            $APKSIGNER sign --ks /tmp/release.keystore \
+              --ks-pass pass:yuec123456 --key-pass pass:yuec123456 \
+              --ks-key-alias yuec "$apk"
+            $APKSIGNER verify "$apk"
           done
 
       - name: Upload
