@@ -49,19 +49,19 @@ class _SearchScreenState extends State<SearchScreen> {
           padding: const EdgeInsets.all(16),
           child: TextField(
             controller: _searchController,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: Color(0xFFE8EEFF)),
             decoration: InputDecoration(
               hintText: 'Search songs...',
-              hintStyle: TextStyle(color: Colors.grey[600]),
+              hintStyle: const TextStyle(color: Color(0xFF5566AA)),
               filled: true,
-              fillColor: const Color(0xFF2A2A2A),
+              fillColor: const Color(0xFF1A1F4E),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
-              prefixIcon: const Icon(Icons.search, color: Colors.grey),
+              prefixIcon: const Icon(Icons.search, color: Color(0xFF5566AA)),
               suffixIcon: IconButton(
-                icon: const Icon(Icons.send, color: Color(0xFF1DB954)),
+                icon: const Icon(Icons.send, color: Color(0xFF4080FF)),
                 onPressed: _search,
               ),
             ),
@@ -70,7 +70,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
         if (_isLoading)
           const Expanded(
-            child: Center(child: CircularProgressIndicator()),
+            child: Center(child: CircularProgressIndicator(color: Color(0xFF4080FF))),
           )
         else if (_error.isNotEmpty)
           Expanded(
@@ -85,14 +85,14 @@ class _SearchScreenState extends State<SearchScreen> {
               itemBuilder: (context, index) {
                 final song = _results[index];
                 return ListTile(
-                  leading: const Icon(Icons.music_note, color: Color(0xFF1DB954)),
+                  leading: const Icon(Icons.music_note, color: Color(0xFF4080FF)),
                   title: Text(
                     song['title'] ?? 'Unknown',
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Color(0xFFE8EEFF)),
                   ),
                   subtitle: Text(
                     '${song['artist'] ?? 'Unknown'} - ${song['album'] ?? ''}',
-                    style: TextStyle(color: Colors.grey[500]),
+                    style: const TextStyle(color: Color(0xFF7799CC)),
                   ),
                   onTap: () {
                     Navigator.push(
@@ -101,7 +101,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         builder: (_) => PlayerScreen(
                           title: song['title'] ?? 'Unknown',
                           artist: song['artist'] ?? 'Unknown',
-                          url: song['url'] ?? '',
+                          songData: song,
                         ),
                       ),
                     );
