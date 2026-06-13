@@ -23,21 +23,46 @@ jobs:
         with:
           channel: stable
 
-      - name: Generate keystore
+      - name: Generate keystore and configure signing
         run: |
           keytool -genkey -v -keystore /tmp/release.keystore \
             -alias yuec -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass yuec123456 -keypass yuec123456 \
             -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
+          echo "storeFile=/tmp/release.keystore" > /tmp/key.properties
+          echo "storePassword=yuec123456" >> /tmp/key.properties
+          echo "keyPassword=yuec123456" >> /tmp/key.properties
+          echo "keyAlias=yuec" >> /tmp/key.properties
 
       - name: Build
         run: |
           rm -rf android ios test
           flutter create --org com.yuec --project-name yuec --platforms android .
-          echo "storeFile=/tmp/release.keystore" > android/key.properties
-          echo "storePassword=yuec123456" >> android/key.properties
-          echo "keyPassword=yuec123456" >> android/key.properties
-          echo "keyAlias=yuec" >> android/key.properties
+          cp /tmp/key.properties android/key.properties
+          cat >> android/app/build.gradle << 'GRADLE'
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+GRADLE
           flutter pub get
           flutter build apk --release --split-per-abi
 
