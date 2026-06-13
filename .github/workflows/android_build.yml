@@ -23,35 +23,80 @@ jobs:
         with:
           channel: stable
 
-      - name: Build unsigned APK
+      - name: Build release APK
         run: |
           rm -rf android ios test
           flutter create --org com.yuec --project-name yuec --platforms android .
-          flutter pub get
-          flutter build apk --debug --split-per-abi
-
-      - name: Sign with apksigner
-        run: |
-          keytool -genkey -v -keystore /tmp/release.keystore \
-            -alias yuec -keyalg RSA -keysize 2048 -validity 10000 \
+          keytool -genkey -v -keystore /tmp/upload-keystore.jks \
+            -alias upload -keyalg RSA -keysize 2048 -validity 10000 \
             -storepass yuec123456 -keypass yuec123456 \
             -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
-          ANDROID_SDK_ROOT="/usr/local/lib/android/sdk"
-          APKSIGNER="$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner"
-          if [ ! -f "$APKSIGNER" ]; then
-            APKSIGNER="$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner"
-          fi
-          if [ ! -f "$APKSIGNER" ]; then
-            APKSIGNER=$(find $ANDROID_SDK_ROOT/build-tools -name "apksigner" | head -1)
-          fi
-          echo "Using apksigner: $APKSIGNER"
-          for apk in build/app/outputs/flutter-apk/*.apk; do
-            echo "Signing $apk"
-            $APKSIGNER sign --ks /tmp/release.keystore \
-              --ks-pass pass:yuec123456 --key-pass pass:yuec123456 \
-              --ks-key-alias yuec "$apk"
-            $APKSIGNER verify "$apk"
-          done
+          cat > android/key.properties << EOF
+storePassword=yuec123456
+keyPassword=yuec123456
+keyAlias=upload
+storeFile=/tmp/upload-keystore.jks
+EOF
+          cat > android/app/build.gradle << 'EOF'
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('key.properties')
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace = "com.yuec.app"
+    compileSdk = 35
+    ndkVersion = "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        applicationId = "com.yuec.app"
+        minSdk = 24
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+EOF
+          flutter pub get
+          flutter build apk --release --split-per-abi
 
       - name: Upload
         uses: actions/upload-artifact@v4
