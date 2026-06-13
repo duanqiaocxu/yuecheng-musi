@@ -35,14 +35,9 @@ jobs:
           flutter pub get
           flutter build apk --debug
 
-      - name: Rename APK
-        run: |
-          mkdir -p /tmp/apk-output
-          cp build/app/outputs/flutter-apk/app-debug.apk /tmp/apk-output/yuec.apk
-
-      - name: Upload
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: yuec-apk
-          path: /tmp/apk-output/yuec.apk
+          name: yuec.apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           retention-days: 30
