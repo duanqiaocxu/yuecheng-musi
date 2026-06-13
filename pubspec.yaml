@@ -4,13 +4,13 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.4.0 <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  dio: ^5.7.0
-  just_audio: ^0.10.5
+  dio: ^5.4.0
+  just_audio: ^0.9.39
 
 dev_dependencies:
   flutter_test:
