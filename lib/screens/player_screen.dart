@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import '../services/music_service.dart';
 
 class PlayerScreen extends StatefulWidget {
   final String title;
   final String artist;
-  final String url;
+  final Map<String, String> songData;
 
   const PlayerScreen({
     super.key,
     required this.title,
     required this.artist,
-    required this.url,
+    required this.songData,
   });
 
   @override
@@ -19,6 +20,7 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   final AudioPlayer _player = AudioPlayer();
+  final MusicService _musicService = MusicService();
   bool _isPlaying = false;
   bool _isLoading = true;
   String _error = '';
@@ -34,29 +36,39 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<void> _initPlayer() async {
     try {
       _player.positionStream.listen((pos) {
-        setState(() => _position = pos);
+        if (mounted) setState(() => _position = pos);
       });
       _player.durationStream.listen((dur) {
-        setState(() => _duration = dur ?? Duration.zero);
+        if (mounted) setState(() => _duration = dur ?? Duration.zero);
       });
       _player.playerStateStream.listen((state) {
-        setState(() {
-          _isPlaying = state.playing;
-          _isLoading = state.processingState == ProcessingState.loading;
-        });
+        if (mounted) {
+          setState(() {
+            _isPlaying = state.playing;
+            _isLoading = state.processingState == ProcessingState.loading;
+          });
+        }
       });
 
-      await _player.setAudioSource(AudioSource.uri(Uri.parse(widget.url)));
+      // Get real playable URL
+      final realUrl = await _musicService.getSongUrl(widget.songData);
+      if (realUrl.isEmpty) throw Exception('Could not get song URL');
+
+      await _player.setAudioSource(AudioSource.uri(Uri.parse(realUrl)));
       await _player.play();
-      setState(() {
-        _isPlaying = true;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isPlaying = true;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = 'Playback failed: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Playback failed: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -69,13 +81,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: const Color(0xFF0F1535),
       appBar: AppBar(
         title: const Text('Now Playing'),
         backgroundColor: Colors.transparent,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4080FF)))
           : _error.isNotEmpty
               ? Center(
                   child: Padding(
@@ -93,24 +109,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Spacer(),
+                      // Album art placeholder
                       Container(
                         width: 250,
                         height: 250,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2A2A2A),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF2A3060), Color(0xFF3A40A0)],
+                          ),
                           borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFF4A50C0)),
                         ),
                         child: const Icon(
                           Icons.music_note,
                           size: 80,
-                          color: Color(0xFF1DB954),
+                          color: Color(0xFF4080FF),
                         ),
                       ),
                       const SizedBox(height: 32),
                       Text(
                         widget.title,
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFFE8EEFF),
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
                         ),
@@ -121,8 +141,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       const SizedBox(height: 8),
                       Text(
                         widget.artist,
-                        style: TextStyle(
-                          color: Colors.grey[400],
+                        style: const TextStyle(
+                          color: Color(0xFF7799CC),
                           fontSize: 16,
                         ),
                       ),
@@ -131,16 +151,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         children: [
                           SliderTheme(
                             data: SliderTheme.of(context).copyWith(
-                              activeTrackColor: const Color(0xFF1DB954),
-                              inactiveTrackColor: Colors.grey[800],
-                              thumbColor: const Color(0xFF1DB954),
-                              overlayColor: const Color(0x291DB954),
+                              activeTrackColor: const Color(0xFF4080FF),
+                              inactiveTrackColor: const Color(0xFF2A3060),
+                              thumbColor: const Color(0xFF4080FF),
+                              overlayColor: const Color(0x294080FF),
                             ),
                             child: Slider(
                               value: _duration.inMilliseconds > 0
-                                  ? _position.inMilliseconds
-                                      .toDouble()
-                                      .clamp(0, _duration.inMilliseconds.toDouble())
+                                  ? _position.inMilliseconds.toDouble().clamp(0, _duration.inMilliseconds.toDouble())
                                   : 0,
                               max: _duration.inMilliseconds.toDouble().clamp(1, double.infinity),
                               onChanged: (v) {
@@ -153,14 +171,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  _formatDuration(_position),
-                                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                                ),
-                                Text(
-                                  _formatDuration(_duration),
-                                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
-                                ),
+                                Text(_formatDuration(_position), style: const TextStyle(color: Color(0xFF5566AA), fontSize: 12)),
+                                Text(_formatDuration(_duration), style: const TextStyle(color: Color(0xFF5566AA), fontSize: 12)),
                               ],
                             ),
                           ),
@@ -171,21 +183,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.skip_previous, size: 40),
-                            color: Colors.white,
+                            icon: const Icon(Icons.skip_previous, size: 40, color: Color(0xFFE8EEFF)),
                             onPressed: () {},
                           ),
                           Container(
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1DB954),
+                              gradient: const LinearGradient(colors: [Color(0xFF4080FF), Color(0xFF6060FF)]),
                               shape: BoxShape.circle,
+                              boxShadow: const [
+                                BoxShadow(color: Color(0x404080FF), blurRadius: 20, spreadRadius: 2),
+                              ],
                             ),
                             child: IconButton(
                               icon: Icon(
                                 _isPlaying ? Icons.pause : Icons.play_arrow,
                                 size: 48,
+                                color: Colors.white,
                               ),
-                              color: Colors.black,
                               onPressed: () {
                                 if (_isPlaying) {
                                   _player.pause();
@@ -196,8 +210,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.skip_next, size: 40),
-                            color: Colors.white,
+                            icon: const Icon(Icons.skip_next, size: 40, color: Color(0xFFE8EEFF)),
                             onPressed: () {},
                           ),
                         ],
