@@ -23,12 +23,32 @@ jobs:
         with:
           channel: stable
 
-      - name: Build
+      - name: Generate keystore
+        run: |
+          keytool -genkey -v -keystore /tmp/release.keystore \
+            -alias yuec -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass yuec123456 -keypass yuec123456 \
+            -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
+
+      - name: Build signed APK
         run: |
           rm -rf android ios test
           flutter create --org com.yuec --project-name yuec --platforms android .
           flutter pub get
           flutter build apk --release --split-per-abi
+        env:
+          ANDROID_KEYSTORE_PATH: /tmp/release.keystore
+          ANDROID_KEYSTORE_ALIAS: yuec
+          ANDROID_KEYSTORE_PASSWORD: yuec123456
+          ANDROID_KEY_PASSWORD: yuec123456
+
+      - name: Sign APKs
+        run: |
+          for apk in build/app/outputs/flutter-apk/*.apk; do
+            jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
+              -keystore /tmp/release.keystore -storepass yuec123456 \
+              -keypass yuec123456 "$apk" yuec
+          done
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -36,3 +56,4 @@ jobs:
           name: yuec-apk
           path: build/app/outputs/flutter-apk/*.apk
           retention-days: 30
+          
