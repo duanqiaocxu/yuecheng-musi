@@ -13,13 +13,22 @@ class MusicService {
         queryParameters: {'s': query, 'type': 1, 'limit': 20, 'offset': 0},
       );
       final songs = response.data?['result']?['songs'] as List? ?? [];
-      return songs.map<Map<String, String>>((s) => {
-        'title': s['name']?.toString() ?? 'Unknown',
-        'artist': (s['artists'] as List?).let((l) => l?.map((a) => a['name']?.toString() ?? '').join(', ') ?? ''),
-        'album': s['album']?['name']?.toString() ?? '',
-        'url': 'netease:${s['id']}',
-        'source': 'netease',
-      }).toList();
+      final results = <Map<String, String>>[];
+      for (final s in songs) {
+        final id = s['id']?.toString() ?? '';
+        if (id.isEmpty) continue;
+        final artists = s['artists'] as List? ?? [];
+        final artistNames = artists.map((a) => a['name']?.toString() ?? '').join(', ');
+        results.add({
+          'title': s['name']?.toString() ?? 'Unknown',
+          'artist': artistNames,
+          'album': s['album']?['name']?.toString() ?? '',
+          'url': 'netease:$id',
+          'source': 'netease',
+        });
+      }
+      if (results.isNotEmpty) return results;
+      throw Exception('No results');
     } catch (_) {
       return [
         {'title': query, 'artist': 'Demo', 'album': 'Album', 'url': 'demo', 'source': 'demo'},
