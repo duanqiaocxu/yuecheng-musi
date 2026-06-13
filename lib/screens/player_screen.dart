@@ -53,32 +53,29 @@ class _PlayerScreenState extends State<PlayerScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: _isLoading
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFF4080FF)))
-        : _error.isNotEmpty
-          ? Center(child: Text(_error, style: const TextStyle(color: Colors.red)))
-          : Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.music_note, size: 100, color: Color(0xFF4080FF)),
-                  const SizedBox(height: 24),
-                  Text(widget.title, style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 22)),
-                  const SizedBox(height: 8),
-                  Text(widget.artist, style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16)),
-                  const SizedBox(height: 24),
-                  IconButton(
-                    icon: Icon(
-                      _isPlaying ? Icons.pause_circle : Icons.play_circle,
-                      size: 60, color: const Color(0xFF4080FF),
-                    ),
-                    onPressed: () {
-                      if (_isPlaying) { _player.pause(); setState(() => _isPlaying = false); }
-                      else { _player.play(); setState(() => _isPlaying = true); }
-                    },
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF4080FF)))
+          : _error.isNotEmpty
+              ? Center(child: Text(_error, style: const TextStyle(color: Colors.red)))
+              : Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.music_note, size: 100, color: Color(0xFF4080FF)),
+                      const SizedBox(height: 24),
+                      Text(widget.title, style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 22)),
+                      const SizedBox(height: 8),
+                      Text(widget.artist, style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16)),
+                      const SizedBox(height: 24),
+                      IconButton(
+                        icon: Icon(_isPlaying ? Icons.pause_circle : Icons.play_circle, size: 60, color: const Color(0xFF4080FF)),
+                        onPressed: () {
+                          if (_isPlaying) { _player.pause(); setState(() => _isPlaying = false); }
+                          else { _player.play(); setState(() => _isPlaying = true); }
+                        },
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
+                ),
     );
   }
 
