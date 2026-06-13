@@ -28,66 +28,33 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _initPlayer();
+    _loadSong();
   }
 
-  Future<void> _initPlayer() async {
+  Future<void> _loadSong() async {
     try {
       final realUrl = await _musicService.getSongUrl(widget.songData);
       if (realUrl.isEmpty) throw Exception('Could not get song URL');
       await _player.setAudioSource(AudioSource.uri(Uri.parse(realUrl)));
       await _player.play();
+      if (mounted) {
+        setState(() {
+          _isPlaying = true;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = 'Playback failed: $e';
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = 'Playback failed: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF0F1535),
-        appBar: AppBar(
-          title: const Text('Now Playing'),
-          backgroundColor: Colors.transparent,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: const Center(
-          child: CircularProgressIndicator(color: Color(0xFF4080FF)),
-        ),
-      );
-    }
-
-    if (_error.isNotEmpty) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF0F1535),
-        appBar: AppBar(
-          title: const Text('Now Playing'),
-          backgroundColor: Colors.transparent,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-        ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              _error,
-              style: const TextStyle(color: Colors.red, fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F1535),
       appBar: AppBar(
@@ -101,45 +68,66 @@ class _PlayerScreenState extends State<PlayerScreen> {
           },
         ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const SizedBox(
-              width: 250,
-              height: 250,
-              child: Icon(Icons.music_note, size: 80, color: Color(0xFF4080FF)),
-            ),
-            const SizedBox(height: 32),
-            Text(
-              widget.title,
-              style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 22, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.artist,
-              style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16),
-            ),
-            const SizedBox(height: 32),
-            IconButton(
-              icon: Icon(
-                _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                size: 64,
-                color: const Color(0xFF4080FF),
-              ),
-              onPressed: () {
-                if (_isPlaying) {
-                  _player.pause();
-                  setState(() => _isPlaying = false);
-                } else {
-                  _player.play();
-                  setState(() => _isPlaying = true);
-                }
-              },
-            ),
-          ],
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF4080FF)),
+      );
+    }
+    if (_error.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _error,
+            style: const TextStyle(color: Colors.red, fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
         ),
+      );
+    }
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SizedBox(
+            width: 250,
+            height: 250,
+            child: Icon(Icons.music_note, size: 80, color: Color(0xFF4080FF)),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            widget.title,
+            style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 22, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            widget.artist,
+            style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16),
+          ),
+          const SizedBox(height: 32),
+          IconButton(
+            icon: Icon(
+              _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+              size: 64,
+              color: const Color(0xFF4080FF),
+            ),
+            onPressed: () {
+              if (_isPlaying) {
+                _player.pause();
+                setState(() => _isPlaying = false);
+              } else {
+                _player.play();
+                setState(() => _isPlaying = true);
+              }
+            },
+          ),
+        ],
       ),
     );
   }
