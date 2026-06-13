@@ -28,28 +28,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSong();
+    _init();
   }
 
-  Future<void> _loadSong() async {
+  Future<void> _init() async {
     try {
-      final realUrl = await _musicService.getSongUrl(widget.songData);
-      if (realUrl.isEmpty) throw Exception('Could not get song URL');
-      await _player.setAudioSource(AudioSource.uri(Uri.parse(realUrl)));
+      final url = await _musicService.getSongUrl(widget.songData);
+      if (url.isEmpty) throw Exception('No URL');
+      await _player.setAudioSource(AudioSource.uri(Uri.parse(url)));
       await _player.play();
-      if (mounted) {
-        setState(() {
-          _isPlaying = true;
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() { _isPlaying = true; _isLoading = false; });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Playback failed: $e';
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
     }
   }
 
@@ -60,81 +50,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
       appBar: AppBar(
         title: const Text('Now Playing'),
         backgroundColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            _player.dispose();
-            Navigator.pop(context);
-          },
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: _buildBody(),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF4080FF)),
-      );
-    }
-    if (_error.isNotEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            _error,
-            style: const TextStyle(color: Colors.red, fontSize: 16),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(
-            width: 250,
-            height: 250,
-            child: Icon(Icons.music_note, size: 80, color: Color(0xFF4080FF)),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            widget.title,
-            style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 22, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.artist,
-            style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16),
-          ),
-          const SizedBox(height: 32),
-          IconButton(
-            icon: Icon(
-              _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-              size: 64,
-              color: const Color(0xFF4080FF),
+      body: _isLoading
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFF4080FF)))
+        : _error.isNotEmpty
+          ? Center(child: Text(_error, style: const TextStyle(color: Colors.red)))
+          : Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.music_note, size: 100, color: Color(0xFF4080FF)),
+                  const SizedBox(height: 24),
+                  Text(widget.title, style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 22)),
+                  const SizedBox(height: 8),
+                  Text(widget.artist, style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16)),
+                  const SizedBox(height: 24),
+                  IconButton(
+                    icon: Icon(
+                      _isPlaying ? Icons.pause_circle : Icons.play_circle,
+                      size: 60, color: const Color(0xFF4080FF),
+                    ),
+                    onPressed: () {
+                      if (_isPlaying) { _player.pause(); setState(() => _isPlaying = false); }
+                      else { _player.play(); setState(() => _isPlaying = true); }
+                    },
+                  ),
+                ],
+              ),
             ),
-            onPressed: () {
-              if (_isPlaying) {
-                _player.pause();
-                setState(() => _isPlaying = false);
-              } else {
-                _player.play();
-                setState(() => _isPlaying = true);
-              }
-            },
-          ),
-        ],
-      ),
     );
   }
 
   @override
-  void dispose() {
-    _player.dispose();
-    super.dispose();
-  }
+  void dispose() { _player.dispose(); super.dispose(); }
 }
