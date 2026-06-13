@@ -30,25 +30,16 @@ jobs:
             -storepass yuec123456 -keypass yuec123456 \
             -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
 
-      - name: Build signed APK
+      - name: Build
         run: |
           rm -rf android ios test
           flutter create --org com.yuec --project-name yuec --platforms android .
+          echo "storeFile=/tmp/release.keystore" > android/key.properties
+          echo "storePassword=yuec123456" >> android/key.properties
+          echo "keyPassword=yuec123456" >> android/key.properties
+          echo "keyAlias=yuec" >> android/key.properties
           flutter pub get
           flutter build apk --release --split-per-abi
-        env:
-          ANDROID_KEYSTORE_PATH: /tmp/release.keystore
-          ANDROID_KEYSTORE_ALIAS: yuec
-          ANDROID_KEYSTORE_PASSWORD: yuec123456
-          ANDROID_KEY_PASSWORD: yuec123456
-
-      - name: Sign APKs
-        run: |
-          for apk in build/app/outputs/flutter-apk/*.apk; do
-            jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 \
-              -keystore /tmp/release.keystore -storepass yuec123456 \
-              -keypass yuec123456 "$apk" yuec
-          done
 
       - name: Upload
         uses: actions/upload-artifact@v4
@@ -56,4 +47,3 @@ jobs:
           name: yuec-apk
           path: build/app/outputs/flutter-apk/*.apk
           retention-days: 30
-          
