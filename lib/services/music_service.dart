@@ -12,41 +12,29 @@ class MusicService {
         'https://music.163.com/api/search/get',
         queryParameters: {'s': query, 'type': 1, 'limit': 20, 'offset': 0},
       );
-      final data = response.data;
-      if (data == null || data['result'] == null) {
-        throw Exception('No results');
-      }
-      final songs = data['result']['songs'] as List? ?? [];
+      final songs = response.data?['result']?['songs'] as List? ?? [];
       final results = <Map<String, String>>[];
-      for (final song in songs) {
-        final id = song['id']?.toString() ?? '';
-        if (id.isEmpty) continue;
-        String artist = '';
-        if (song['artists'] is List) {
-          artist = (song['artists'] as List).map((a) => a['name']?.toString() ?? '').join(', ');
-        }
+      for (final s in songs) {
+        if (s['id'] == null) continue;
+        final artists = (s['artists'] as List?)?.map((a) => a['name'].toString()).join(', ') ?? '';
         results.add({
-          'title': song['name']?.toString() ?? 'Unknown',
-          'artist': artist,
-          'album': song['album']?['name']?.toString() ?? '',
-          'url': 'netease:$id',
+          'title': s['name']?.toString() ?? 'Unknown',
+          'artist': artists,
+          'album': s['album']?['name']?.toString() ?? '',
+          'url': 'netease:${s['id']}',
           'source': 'netease',
         });
       }
       if (results.isNotEmpty) return results;
-      throw Exception('No results');
-    } catch (e) {
-      return [
-        {'title': query, 'artist': 'Demo', 'album': 'Album', 'url': 'demo', 'source': 'demo'},
-        {'title': '$query (Remix)', 'artist': 'Demo', 'album': 'Album', 'url': 'demo', 'source': 'demo'},
-      ];
-    }
+    } catch (_) {}
+    return [
+      {'title': query, 'artist': 'Demo', 'album': 'Album', 'url': 'demo', 'source': 'demo'},
+    ];
   }
 
   Future<String> getSongUrl(Map<String, String> song) async {
-    final url = song['url'] ?? '';
-    if (url == 'demo') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-    final id = url.replaceFirst('netease:', '');
+    if (song['source'] == 'demo') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+    final id = (song['url'] ?? '').replaceFirst('netease:', '');
     return 'https://music.163.com/song/media/outer/url?id=$id.mp3';
   }
 }
