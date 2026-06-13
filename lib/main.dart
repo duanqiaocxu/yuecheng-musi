@@ -14,10 +14,8 @@ class YueCApp extends StatelessWidget {
     return MaterialApp(
       title: 'YueC',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF4080FF),
-        brightness: Brightness.dark,
-        useMaterial3: true,
+      theme: ThemeData.dark().copyWith(
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4080FF), brightness: Brightness.dark),
         scaffoldBackgroundColor: const Color(0xFF0F1535),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF1A1F4E),
