@@ -37,10 +37,10 @@ class _SearchScreenState extends State<SearchScreen> {
           style: const TextStyle(color: Color(0xFFE8EEFF)),
           decoration: InputDecoration(
             hintText: 'Search songs...',
-            hintStyle: const TextStyle(color: Color(0xFF5566AA)),
+            hintStyle: const TextStyle(color: Color(0xFF7799CC)),
             filled: true, fillColor: const Color(0xFF1A1F4E),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            prefixIcon: const Icon(Icons.search, color: Color(0xFF5566AA)),
+            prefixIcon: const Icon(Icons.search, color: Color(0xFF7799CC)),
             suffixIcon: IconButton(
               icon: const Icon(Icons.send, color: Color(0xFF4080FF)),
               onPressed: _search,
