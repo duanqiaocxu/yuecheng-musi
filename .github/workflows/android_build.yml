@@ -23,19 +23,37 @@ jobs:
         with:
           channel: stable
 
-      - name: Build APK
+      - name: Build
         run: |
           rm -rf android ios test
-          flutter create --org com.yuec --project-name yuec --platforms android .
-          flutter pub get
-          flutter build apk --debug --split-per-abi
 
-      - name: Sign properly
+          keytool -genkey -v -keystore $HOME/key.jks -alias yuec -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
+
+          flutter create --org com.yuec --project-name yuec --platforms android .
+
+          echo "storeFile=$HOME/key.jks" > android/key.properties
+          echo "storePassword=123456" >> android/key.properties
+          echo "keyPassword=123456" >> android/key.properties
+          echo "keyAlias=yuec" >> android/key.properties
+
+          mkdir -p android/app/src/main/resources
+          echo "<?xml version=\"1.0\" encoding=\"utf-8\"?>" > android/app/src/main/res/values/styles.xml
+          echo "<resources>" >> android/app/src/main/res/values/styles.xml
+          echo "<style name=\"LaunchTheme\" parent=\"@android:style/Theme.Light.NoTitleBar\">" >> android/app/src/main/res/values/styles.xml
+          echo "<item name=\"android:windowBackground\">@android:color/black</item>" >> android/app/src/main/res/values/styles.xml
+          echo "</style>" >> android/app/src/main/res/values/styles.xml
+          echo "<style name=\"NormalTheme\" parent=\"@android:style/Theme.Light.NoTitleBar\">" >> android/app/src/main/res/values/styles.xml
+          echo "<item name=\"android:windowBackground\">@android:color/black</item>" >> android/app/src/main/res/values/styles.xml
+          echo "</style>" >> android/app/src/main/res/values/styles.xml
+          echo "</resources>" >> android/app/src/main/res/values/styles.xml
+
+          flutter pub get
+          flutter build apk --debug
+
+      - name: Sign
         run: |
-          keytool -genkey -v -keystore /tmp/release.keystore -alias yuec -keyalg RSA -keysize 2048 -validity 10000 -storepass yuec123456 -keypass yuec123456 -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
           for apk in build/app/outputs/flutter-apk/*.apk; do
-            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore /tmp/release.keystore -storepass yuec123456 -keypass yuec123456 -signedjar "${apk%.*}-signed.apk" "$apk" yuec
-            mv "${apk%.*}-signed.apk" "$apk"
+            jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 -keystore $HOME/key.jks -storepass 123456 -keypass 123456 "$apk" yuec
           done
 
       - name: Upload
