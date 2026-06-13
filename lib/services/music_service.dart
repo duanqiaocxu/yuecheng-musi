@@ -2,8 +2,8 @@ import 'package:dio/dio.dart';
 
 class MusicService {
   final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 15),
-    receiveTimeout: const Duration(seconds: 15),
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 10),
   ));
 
   Future<List<Map<String, String>>> search(String query) async {
@@ -12,24 +12,30 @@ class MusicService {
         'https://music.163.com/api/search/get',
         queryParameters: {'s': query, 'type': 1, 'limit': 20, 'offset': 0},
       );
-      final songs = response.data?['result']?['songs'] as List? ?? [];
+      final data = response.data;
+      if (data == null || data['result'] == null) {
+        throw Exception('No results');
+      }
+      final songs = data['result']['songs'] as List? ?? [];
       final results = <Map<String, String>>[];
-      for (final s in songs) {
-        final id = s['id']?.toString() ?? '';
+      for (final song in songs) {
+        final id = song['id']?.toString() ?? '';
         if (id.isEmpty) continue;
-        final artists = s['artists'] as List? ?? [];
-        final artistNames = artists.map((a) => a['name']?.toString() ?? '').join(', ');
+        String artist = '';
+        if (song['artists'] is List) {
+          artist = (song['artists'] as List).map((a) => a['name']?.toString() ?? '').join(', ');
+        }
         results.add({
-          'title': s['name']?.toString() ?? 'Unknown',
-          'artist': artistNames,
-          'album': s['album']?['name']?.toString() ?? '',
+          'title': song['name']?.toString() ?? 'Unknown',
+          'artist': artist,
+          'album': song['album']?['name']?.toString() ?? '',
           'url': 'netease:$id',
           'source': 'netease',
         });
       }
       if (results.isNotEmpty) return results;
       throw Exception('No results');
-    } catch (_) {
+    } catch (e) {
       return [
         {'title': query, 'artist': 'Demo', 'album': 'Album', 'url': 'demo', 'source': 'demo'},
         {'title': '$query (Remix)', 'artist': 'Demo', 'album': 'Album', 'url': 'demo', 'source': 'demo'},
