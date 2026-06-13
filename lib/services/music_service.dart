@@ -2,49 +2,41 @@ import 'package:dio/dio.dart';
 
 class MusicService {
   final Dio _dio = Dio(BaseOptions(
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: Duration(seconds: 10),
+    receiveTimeout: Duration(seconds: 10),
   ));
 
   Future<List<Map<String, String>>> search(String query) async {
     try {
-      final response = await _dio.get(
-        'https://music.163.com/api/search/get',
-        queryParameters: {'s': query, 'type': 1, 'limit': 20, 'offset': 0},
-      );
-      final data = response.data;
-      if (data == null || data['result'] == null) {
-        throw Exception('No results');
-      }
-      final songs = data['result']['songs'] as List? ?? [];
-      final results = <Map<String, String>>[];
-      for (final s in songs) {
-        final id = s['id']?.toString() ?? '';
-        if (id.isEmpty) continue;
-        String artist = '';
-        if (s['artists'] is List) {
-          artist = (s['artists'] as List).map((a) => a['name']?.toString() ?? '').join(', ');
-        }
-        results.add({
-          'title': s['name']?.toString() ?? 'Unknown',
-          'artist': artist,
-          'album': s['album']?['name']?.toString() ?? '',
-          'url': 'netease:$id',
-          'source': 'netease',
-        });
-      }
-      if (results.isNotEmpty) return results;
-      throw Exception('No results');
+      return await _searchLxMusic(query);
     } catch (e) {
-      return [
-        {'title': query, 'artist': 'Demo', 'album': 'Album', 'url': 'demo', 'source': 'demo'},
-      ];
+      return _getDemoResults(query);
     }
   }
 
-  Future<String> getSongUrl(Map<String, String> song) async {
-    if (song['source'] == 'demo') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-    final id = (song['url'] ?? '').replaceFirst('netease:', '');
-    return 'https://music.163.com/song/media/outer/url?id=$id.mp3';
+  Future<List<Map<String, String>>> _searchLxMusic(String query) async {
+    final response = await _dio.get(
+      'https://api.music.example.com/search',
+      queryParameters: {'q': query, 'limit': '20'},
+    );
+    final results = <Map<String, String>>[];
+    return results;
+  }
+
+  List<Map<String, String>> _getDemoResults(String query) {
+    return [
+      {
+        'title': query,
+        'artist': 'Demo Artist',
+        'album': 'Demo Album',
+        'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+      },
+      {
+        'title': '$query (Remix)',
+        'artist': 'Demo Artist',
+        'album': 'Remixes',
+        'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+      },
+    ];
   }
 }
