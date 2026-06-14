@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import '../services/music_service.dart';
 
 class PlayerScreen extends StatefulWidget {
   final String title;
   final String artist;
-  final String url;
+  final Map<String, String> songData;
 
   const PlayerScreen({
     super.key,
     required this.title,
     required this.artist,
-    required this.url,
+    required this.songData,
   });
 
   @override
@@ -19,9 +20,12 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   final AudioPlayer _player = AudioPlayer();
+  final MusicService _musicService = MusicService();
   bool _isPlaying = false;
   bool _isLoading = true;
   String _error = '';
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
 
   @override
   void initState() {
@@ -31,53 +35,22 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _initPlayer() async {
     try {
-      await _player.setAudioSource(AudioSource.uri(Uri.parse(widget.url)));
-      await _player.play();
-      if (mounted) setState(() { _isPlaying = true; _isLoading = false; });
-    } catch (e) {
-      if (mounted) setState(() { _error = 'Playback failed: $e'; _isLoading = false; });
-    }
-  }
+      _player.positionStream.listen((pos) {
+        if (mounted) setState(() => _position = pos);
+      });
+      _player.durationStream.listen((dur) {
+        if (mounted) setState(() => _duration = dur ?? Duration.zero);
+      });
+      _player.playerStateStream.listen((state) {
+        if (mounted) {
+          setState(() {
+            _isPlaying = state.playing;
+            _isLoading = state.processingState == ProcessingState.loading;
+          });
+        }
+      });
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0F1535),
-      appBar: AppBar(
-        title: const Text('Now Playing'),
-        backgroundColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error.isNotEmpty
-              ? Center(child: Text(_error, style: const TextStyle(color: Colors.red)))
-              : Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.music_note, size: 80, color: Color(0xFF4080FF)),
-                      const SizedBox(height: 24),
-                      Text(widget.title, style: const TextStyle(color: Colors.white, fontSize: 22)),
-                      const SizedBox(height: 8),
-                      Text(widget.artist, style: const TextStyle(color: Colors.grey, fontSize: 16)),
-                      const SizedBox(height: 24),
-                      IconButton(
-                        icon: Icon(
-                          _isPlaying ? Icons.pause_circle : Icons.play_circle,
-                          size: 60, color: const Color(0xFF4080FF),
-                        ),
-                        onPressed: () {
-                          if (_isPlaying) { _player.pause(); setState(() => _isPlaying = false); }
-                          else { _player.play(); setState(() => _isPlaying = true); }
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-    );
-  }
+      final realUrl = await _musicService.getSongUrl(widget.songData);
+      if (realUrl.isEmpty) throw Exception('Could not get song URL');
 
-  @override
-  void dispose() { _player.dispose(); super.dispose(); }
-}
+      await _player.setAudioSource(AudioSource.uri(Uri.parse(realUrl)));我已经给出了 `player_screen.dart` 的代码。你点这个链接：
