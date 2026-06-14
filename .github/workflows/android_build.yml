@@ -21,16 +21,11 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.22.0'
-
-      - name: Check versions
-        run: |
-          flutter --version
-          dart --version
+          channel: stable
 
       - name: Build
         run: |
-          rm -rf android ios test
+          rm -rf android ios test build
           flutter create --org com.yuec --project-name yuec --platforms android .
           flutter pub get
           flutter build apk --debug
