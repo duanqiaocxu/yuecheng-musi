@@ -23,10 +23,120 @@ jobs:
         with:
           channel: stable
 
+      - name: Fix player_screen.dart
+        run: |
+          cat > lib/screens/player_screen.dart << 'DARTEOF'
+          import 'package:flutter/material.dart';
+          import 'package:just_audio/just_audio.dart';
+          import '../services/music_service.dart';
+
+          class PlayerScreen extends StatefulWidget {
+            final String title;
+            final String artist;
+            final Map<String, String> songData;
+            const PlayerScreen({super.key, required this.title, required this.artist, required this.songData});
+            @override
+            State<PlayerScreen> createState() => _PlayerScreenState();
+          }
+
+          class _PlayerScreenState extends State<PlayerScreen> {
+            final AudioPlayer _player = AudioPlayer();
+            final MusicService _musicService = MusicService();
+            bool _isPlaying = false;
+            bool _isLoading = true;
+            String _error = '';
+            Duration _position = Duration.zero;
+            Duration _duration = Duration.zero;
+
+            @override
+            void initState() { super.initState(); _init(); }
+
+            Future<void> _init() async {
+              try {
+                _player.positionStream.listen((p) { if (mounted) setState(() => _position = p); });
+                _player.durationStream.listen((d) { if (mounted) setState(() => _duration = d ?? Duration.zero); });
+                _player.playerStateStream.listen((s) {
+                  if (mounted) setState(() { _isPlaying = s.playing; _isLoading = s.processingState == ProcessingState.loading; });
+                });
+                final url = await _musicService.getSongUrl(widget.songData);
+                await _player.setAudioSource(AudioSource.uri(Uri.parse(url)));
+                await _player.play();
+                if (mounted) setState(() { _isPlaying = true; _isLoading = false; });
+              } catch (e) {
+                if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+              }
+            }
+
+            String _fmt(Duration d) {
+              final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+              final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+              return '$m:$s';
+            }
+
+            @override
+            Widget build(BuildContext context) {
+              return Scaffold(
+                backgroundColor: const Color(0xFF0F1535),
+                appBar: AppBar(title: const Text('Now Playing'), backgroundColor: Colors.transparent, iconTheme: IconThemeData(color: Colors.white)),
+                body: _isLoading
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF4080FF)))
+                  : _error.isNotEmpty
+                    ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error, style: const TextStyle(color: Colors.red, fontSize: 16), textAlign: TextAlign.center)))
+                    : Center(
+                        child: Column(mainAxisSize: MainAxisSize.min, children: [
+                          const SizedBox(height: 40),
+                          Container(
+                            width: 200, height: 200,
+                            decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF1A1F4E), Color(0xFF2A3060)]), borderRadius: BorderRadius.circular(16)),
+                            child: const Icon(Icons.music_note, size: 80, color: Color(0xFF4080FF)),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(widget.title, style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                          const SizedBox(height: 8),
+                          Text(widget.artist, style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16)),
+                          const SizedBox(height: 24),
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(activeTrackColor: const Color(0xFF4080FF), inactiveTrackColor: const Color(0xFF2A3060), thumbColor: const Color(0xFF4080FF)),
+                            child: Slider(
+                              value: _duration.inMilliseconds > 0 ? _position.inMilliseconds.toDouble().clamp(0, _duration.inMilliseconds.toDouble()) : 0,
+                              max: _duration.inMilliseconds.toDouble().clamp(1, double.infinity),
+                              onChanged: (v) { _player.seek(Duration(milliseconds: v.toInt())); },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                              Text(_fmt(_position), style: const TextStyle(color: Color(0xFF5566AA), fontSize: 12)),
+                              Text(_fmt(_duration), style: const TextStyle(color: Color(0xFF5566AA), fontSize: 12)),
+                            ]),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            IconButton(icon: const Icon(Icons.skip_previous, size: 40, color: Color(0xFFE8EEFF)), onPressed: () {}),
+                            Container(
+                              decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF4080FF), Color(0xFF6060FF)]), shape: BoxShape.circle),
+                              child: IconButton(
+                                icon: Icon(_isPlaying ? Icons.pause : Icons.play_arrow, size: 48, color: Colors.white),
+                                onPressed: () { if (_isPlaying) _player.pause(); else _player.play(); },
+                              ),
+                            ),
+                            IconButton(icon: const Icon(Icons.skip_next, size: 40, color: Color(0xFFE8EEFF)), onPressed: () {}),
+                          ]),
+                        ]),
+                      ),
+              );
+            }
+
+            @override
+            void dispose() { _player.dispose(); super.dispose(); }
+          }
+          DARTEOF
+          echo "player_screen.dart has been rewritten in CI"
+
       - name: Build
         run: |
           rm -rf android ios test
-          keytool -genkey -v -keystore $HOME/key.jks -alias yuec -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
+          keytool -genkey -v -keystore $HOME/key.jks -alias yuec -keyalg RSA -keysize 2044 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=YueC, OU=YueC, O=YueC, L=Shanghai, ST=Shanghai, C=CN"
           flutter create --org com.yuec --project-name yuec --platforms android .
           echo "storeFile=$HOME/key.jks" > android/key.properties
           echo "storePassword=123456" >> android/key.properties
