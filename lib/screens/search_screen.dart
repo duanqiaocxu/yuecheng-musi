@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import '../services/music_service.dart';
 import 'player_screen.dart';
 
@@ -51,7 +50,7 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
       ),
       if (_isLoading)
-        const Expanded(child: Center(child: CircularProgressIndicator()))
+        const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFF4080FF))))
       else if (_error.isNotEmpty)
         Expanded(child: Center(child: Text(_error, style: const TextStyle(color: Colors.red))))
       else
@@ -65,7 +64,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 title: Text(s['title'] ?? '', style: const TextStyle(color: Color(0xFFE8EEFF))),
                 subtitle: Text('${s['artist'] ?? ''} - ${s['album'] ?? ''}', style: const TextStyle(color: Color(0xFF7799CC))),
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
-                  title: s['title'] ?? '', artist: s['artist'] ?? '', url: s['url'] ?? '',
+                  title: s['title'] ?? '', artist: s['artist'] ?? '', songData: s,
                 ))),
               );
             },
