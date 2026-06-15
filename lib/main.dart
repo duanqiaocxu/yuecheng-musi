@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const YueCApp());
 }
 
@@ -11,25 +12,21 @@ class YueCApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'YueC Music',
+      title: 'YueC',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        colorSchemeSeed: const Color(0xFF4080FF),
         brightness: Brightness.dark,
-        primaryColor: const Color(0xFF64B5F6),
+        useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFF0F1535),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFF1A1F4E),
-          foregroundColor: Color(0xFFE8EEFF),
+          elevation: 0,
         ),
         bottomNavigationBarTheme: const BottomNavigationBarThemeData(
           backgroundColor: Color(0xFF1A1F4E),
-          selectedItemColor: Color(0xFF64B5F6),
-          unselectedItemColor: Color(0xFF7799CC),
-        ),
-        colorScheme: ColorScheme.fromSeed(
-          brightness: Brightness.dark,
-          seedColor: const Color(0xFF64B5F6),
-          surface: const Color(0xFF0F1535),
+          selectedItemColor: Color(0xFF4080FF),
+          unselectedItemColor: Colors.grey,
         ),
       ),
       home: const HomeScreen(),
