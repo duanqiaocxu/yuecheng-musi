@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 
 class PlayerScreen extends StatefulWidget {
   final String title;
@@ -23,7 +24,6 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   final AudioPlayer _player = AudioPlayer();
-  final Dio _dio = Dio();
   bool _isPlaying = false;
   bool _isLoading = true;
   String _error = '';
@@ -37,20 +37,19 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Future<void> _start() async {
     try {
       String playUrl = widget.url;
-
-      // 如果不是demo，尝试获取真实播放URL
       if (widget.sourceKey.isNotEmpty && widget.songId.isNotEmpty) {
         try {
-          final resp = await _dio.get(
-            'https://lxmusicapi.onrender.com/url/${widget.sourceKey}/${widget.songId}/128k',
-            options: Options(headers: {'X-Request-Key': 'share-v3'}),
-          );
-          if (resp.data != null && resp.data['code'] == 0 && resp.data['url'] != null) {
-            playUrl = resp.data['url'].toString();
+          final uri = Uri.parse(widget.url);
+          final resp = await http.get(uri, headers: {'X-Request-Key': 'share-v3'})
+              .timeout(const Duration(seconds: 10));
+          if (resp.statusCode == 200) {
+            final data = jsonDecode(resp.body);
+            if (data['code'] == 0 && data['url'] != null) {
+              playUrl = data['url'].toString();
+            }
           }
         } catch (_) {}
       }
-
       await _player.play(UrlSource(playUrl));
       if (mounted) setState(() { _isPlaying = true; _isLoading = false; });
     } catch (e) {
