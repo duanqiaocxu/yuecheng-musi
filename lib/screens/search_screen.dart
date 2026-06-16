@@ -20,27 +20,31 @@ class _SearchScreenState extends State<SearchScreen> {
     setState(() { _isLoading = true; _error = ''; _results = []; });
 
     try {
-      // QQ音乐搜索
       final response = await _dio.get(
-        'https://c.y.qq.com/soso/fcgi-bin/client_search_cp',
-        queryParameters: {'w': query, 'p': 1, 'n': 20, 'format': 'json'},
+        'https://music.163.com/api/search/get',
+        queryParameters: {'s': query, 'type': 1, 'limit': 20, 'offset': 0},
+        options: Options(headers: {
+          'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 Chrome/120.0.0.0',
+          'Referer': 'https://music.163.com/',
+        }),
       );
-      final songList = response.data?['data']?['song']?['list'] as List? ?? [];
-      if (songList.isEmpty) throw Exception('No results');
+      final songs = response.data?['result']?['songs'] as List? ?? [];
+      if (songs.isEmpty) throw Exception('No results');
 
       final List<Map<String, String>> results = [];
-      for (final s in songList) {
+      for (final s in songs) {
+        if (s['id'] == null) continue;
         String artist = '';
-        if (s['singer'] is List) {
-          for (int i = 0; i < (s['singer'] as List).length; i++) {
+        if (s['artists'] is List) {
+          for (int i = 0; i < (s['artists'] as List).length; i++) {
             if (i > 0) artist += ', ';
-            artist += (s['singer'] as List)[i]['name']?.toString() ?? '';
+            artist += (s['artists'] as List)[i]['name']?.toString() ?? '';
           }
         }
         results.add({
-          'title': s['songname']?.toString() ?? '',
+          'title': s['name']?.toString() ?? '',
           'artist': artist,
-          'album': s['albumname']?.toString() ?? '',
+          'album': s['album']?['name']?.toString() ?? '',
         });
       }
       setState(() { _results = results; _isLoading = false; });
