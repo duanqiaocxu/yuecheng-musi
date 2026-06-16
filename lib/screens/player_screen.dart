@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:http/http.dart' as http;
@@ -31,25 +32,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _start() async {
     try {
-      // 1. 请求网易云地址获取302重定向后的真实CDN地址
+      // 手动获取302重定向后的真实MP3地址
       final uri = Uri.parse('https://music.163.com/song/media/outer/url?id=${widget.songId}.mp3');
-      final client = http.Client();
-      try {
-        final request = http.Request('GET', uri);
-        request.headers.addAll({
-          'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36',
-          'Referer': 'https://music.163.com/',
-        });
-        final streamedResp = await client.send(request).timeout(const Duration(seconds: 10));
-        // 不读取body，只获取重定向后的最终URL
-        streamedResp.stream.listen((_) {}, onDone: () {});
-        await Future.delayed(const Duration(milliseconds: 100));
-      } catch (_) {}
-      client.close();
+      final resp = await http.get(uri, headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36',
+        'Referer': 'https://music.163.com/',
+      }).timeout(const Duration(seconds: 10));
 
-      // 2. 直接用原始地址播放（Android系统层可能会自动重定向）
-      final playUrl = 'https://music.163.com/song/media/outer/url?id=${widget.songId}.mp3';
-      await _player.play(UrlSource(playUrl));
+      // 获取重定向后的最终URL
+      Uri realUrl = uri;
+      if (resp.statusCode == 302 || resp.statusCode == 301) {
+        final location = resp.headers['location'];
+        if (location != null && location.isNotEmpty) {
+          realUrl = Uri.parse(location);
+        }
+      }
+
+      await _player.play(UrlSource(realUrl.toString()));
       if (mounted) setState(() { _isPlaying = true; _isLoading = false; });
     } catch (e) {
       if (mounted) setState(() { _error = '播放失败：$e'; _isLoading = false; });
