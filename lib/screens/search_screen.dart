@@ -22,7 +22,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
     try {
       final uri = Uri.parse('https://music.163.com/api/search/get')
-          .replace(queryParameters: {'s': query, 'type': 1, 'limit': 30, 'offset': 0});
+          .replace(queryParameters: {'s': query, 'type': '1', 'limit': '30', 'offset': '0'});
       final resp = await http.get(uri, headers: {
         'User-Agent': 'Mozilla/5.0 (Linux; Android 14; HarmonyOS) AppleWebKit/537.36',
         'Referer': 'https://music.163.com/',
