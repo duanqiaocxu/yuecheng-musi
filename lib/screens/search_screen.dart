@@ -1,5 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import 'player_screen.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -10,65 +11,61 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final Dio _dio = Dio();
-  List<Map<String, String>> _results = [];
+  List<Map<String, dynamic>> _results = [];
   bool _isLoading = false;
   String _error = '';
 
-  static const String API_URL = 'https://lxmusicapi.onrender.com';
+  final List<String> _sources = ['wy', 'tx', 'kg', 'kw', 'mg'];
+  final Map<String, String> _sourceNames = {
+    'wy': '网易云', 'tx': 'QQ音乐', 'kg': '酷狗', 'kw': '酷我', 'mg': '咪咕'
+  };
 
   Future<void> _search() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
     setState(() { _isLoading = true; _error = ''; _results = []; });
 
-    // 尝试5个音源：网易云(wy), QQ(tx), 酷狗(kg), 酷我(kw), 咪咕(mg)
-    final sources = ['wy', 'tx', 'kg', 'kw', 'mg'];
-    final sourceNames = {'wy': '网易云', 'tx': 'QQ音乐', 'kg': '酷狗', 'kw': '酷我', 'mg': '咪咕'};
-
-    for (final src in sources) {
+    for (final src in _sources) {
       try {
-        final response = await _dio.get(
-          '$API_URL/search/$src/$query/1/20',
-          options: Options(headers: {
-            'Content-Type': 'application/json',
-            'X-Request-Key': 'share-v3',
-          }),
-        );
-        final data = response.data;
-        if (data != null && data['code'] == 0 && data['data'] != null) {
-          final songs = data['data'] is List ? data['data'] : (data['data']['list'] ?? []);
-          if (songs is List && songs.isNotEmpty) {
-            final results = <Map<String, String>>[];
-            for (final s in songs) {
-              final id = s['songmid'] ?? s['hash'] ?? s['id']?.toString() ?? '';
-              if (id.isEmpty) continue;
-              results.add({
-                'title': s['name']?.toString() ?? s['songname']?.toString() ?? '',
-                'artist': s['singer']?.toString() ?? s['singername']?.toString() ?? s['artist']?.toString() ?? '',
-                'album': s['album']?.toString() ?? s['albumname']?.toString() ?? '',
-                'url': '$API_URL/url/$src/$id/128k',
-                'source': sourceNames[src] ?? src,
-                'songId': id,
-                'sourceKey': src,
-              });
-            }
-            if (results.isNotEmpty) {
-              setState(() { _results = results; _isLoading = false; });
-              return;
+        final uri = Uri.parse('https://lxmusicapi.onrender.com/search/$src/$query/1/20');
+        final resp = await http.get(uri, headers: {
+          'Content-Type': 'application/json',
+          'X-Request-Key': 'share-v3',
+        }).timeout(const Duration(seconds: 10));
+
+        if (resp.statusCode == 200) {
+          final data = jsonDecode(resp.body);
+          if (data['code'] == 0 && data['data'] != null) {
+            final songs = data['data'] is List ? data['data'] : (data['data']['list'] ?? []);
+            if (songs is List && songs.isNotEmpty) {
+              final results = <Map<String, dynamic>>[];
+              for (final s in songs) {
+                final id = s['songmid'] ?? s['hash'] ?? s['id']?.toString() ?? '';
+                if (id.isEmpty) continue;
+                results.add({
+                  'title': s['name'] ?? s['songname'] ?? '',
+                  'artist': s['singer'] ?? s['singername'] ?? s['artist'] ?? '',
+                  'album': s['album'] ?? s['albumname'] ?? '',
+                  'url': 'https://lxmusicapi.onrender.com/url/$src/$id/128k',
+                  'source': _sourceNames[src] ?? src,
+                  'songId': id,
+                  'sourceKey': src,
+                });
+              }
+              if (results.isNotEmpty) {
+                setState(() { _results = results; _isLoading = false; });
+                return;
+              }
             }
           }
         }
       } catch (_) {}
     }
 
-    // 全部失败，用demo
+    // 全部失败
     setState(() {
-      _results = [
-        {'title': query, 'artist': 'Demo', 'album': '', 'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3', 'source': 'demo', 'songId': '', 'sourceKey': ''},
-      ];
+      _error = '所有音源都无法连接，检查网络或代理设置';
       _isLoading = false;
-      _error = '无法连接音源，显示Demo';
     });
   }
 
@@ -93,10 +90,15 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       if (_isLoading)
         const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFF4080FF))))
+      else if (_error.isNotEmpty)
+        Expanded(child: Center(child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(_error, style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16), textAlign: TextAlign.center),
+        )))
       else
         Expanded(
           child: _results.isEmpty
-            ? const Center(child: Text('No results', style: TextStyle(color: Color(0xFF7799CC))))
+            ? const Center(child: Text('Enter a song or artist name', style: TextStyle(color: Color(0xFF7799CC))))
             : ListView.builder(
                 itemCount: _results.length,
                 itemBuilder: (ctx, i) {
