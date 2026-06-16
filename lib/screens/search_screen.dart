@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'player_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -115,6 +116,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 leading: const Icon(Icons.music_note, color: Color(0xFF4080FF)),
                 title: Text(s['title'] ?? '', style: const TextStyle(color: Color(0xFFE8EEFF))),
                 subtitle: Text('${s['artist'] ?? ''} · ${s['album'] ?? ''}', style: const TextStyle(color: Color(0xFF7799CC))),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
+                    title: s['title'] ?? '',
+                    artist: s['artist'] ?? '',
+                  )));
+                },
               );
             },
           ),
