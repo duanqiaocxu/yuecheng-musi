@@ -38,23 +38,41 @@ class _SearchScreenState extends State<SearchScreen> {
         }
         final results = <Map<String, dynamic>>[];
         for (final s in songs) {
-          if (s['id'] == null) continue;
-          String artist = '';
-          if (s['artists'] is List) {
-            for (int i = 0; i < (s['artists'] as List).length; i++) {
-              if (i > 0) artist += ' / ';
-              artist += (s['artists'] as List)[i]['name']?.toString() ?? '';
+          if (s == null || s['id'] == null) continue;
+          try {
+            String artist = '';
+            final artists = s['artists'];
+            if (artists is List) {
+              final names = <String>[];
+              for (final a in artists) {
+                if (a is Map && a['name'] != null) {
+                  names.add(a['name'].toString());
+                }
+              }
+              artist = names.join(' / ');
             }
+            final name = s['name'];
+            if (name == null) continue;
+            String album = '';
+            if (s['album'] is Map) {
+              album = s['album']['name']?.toString() ?? '';
+            }
+            results.add({
+              'title': name.toString(),
+              'artist': artist,
+              'album': album,
+              'songId': s['id'].toString(),
+              'source': 'wy',
+            });
+          } catch (_) {
+            continue;
           }
-          results.add({
-            'title': s['name']?.toString() ?? '',
-            'artist': artist,
-            'album': s['album']?['name']?.toString() ?? '',
-            'songId': s['id'].toString(),
-            'source': 'wy',
-          });
         }
-        setState(() { _results = results; _isLoading = false; });
+        if (results.isEmpty) {
+          setState(() { _error = '未找到相关歌曲'; _isLoading = false; });
+        } else {
+          setState(() { _results = results; _isLoading = false; });
+        }
       } else {
         setState(() { _error = '搜索失败：${resp.statusCode}'; _isLoading = false; });
       }
