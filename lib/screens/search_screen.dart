@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'player_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -13,14 +14,6 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Map<String, String>> _results = [];
   bool _isLoading = false;
   String _error = '';
-
-  final List<Map<String, String>> _demoSongs = [
-    {'title': '晴天', 'artist': '周杰伦', 'album': '叶惠美', 'url': 'https://music.163.com/song/media/outer/url?id=186016.mp3'},
-    {'title': '七里香', 'artist': '周杰伦', 'album': '七里香', 'url': 'https://music.163.com/song/media/outer/url?id=316686.mp3'},
-    {'title': '夜曲', 'artist': '周杰伦', 'album': '十一月的萧邦', 'url': 'https://music.163.com/song/media/outer/url?id=186001.mp3'},
-    {'title': '稻香', 'artist': '周杰伦', 'album': '魔杰座', 'url': 'https://music.163.com/song/media/outer/url?id=256401.mp3'},
-    {'title': '青花瓷', 'artist': '周杰伦', 'album': '我很忙', 'url': 'https://music.163.com/song/media/outer/url?id=188175.mp3'},
-  ];
 
   Future<void> _search() async {
     final query = _searchController.text.trim();
@@ -37,7 +30,6 @@ class _SearchScreenState extends State<SearchScreen> {
         }),
       );
       final songs = response.data?['result']?['songs'] as List? ?? [];
-      if (songs.isEmpty) throw Exception('no');
       final results = <Map<String, String>>[];
       for (final s in songs) {
         if (s['id'] == null) continue;
@@ -57,8 +49,11 @@ class _SearchScreenState extends State<SearchScreen> {
       }
       setState(() { _results = results; _isLoading = false; });
     } catch (e) {
+      String q = _searchController.text.trim();
       setState(() {
-        _results = _demoSongs;
+        _results = [
+          {'title': q, 'artist': 'Demo', 'album': '', 'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'},
+        ];
         _isLoading = false;
       });
     }
@@ -100,6 +95,13 @@ class _SearchScreenState extends State<SearchScreen> {
                 leading: const Icon(Icons.music_note, color: Color(0xFF4080FF)),
                 title: Text(s['title'] ?? '', style: const TextStyle(color: Color(0xFFE8EEFF))),
                 subtitle: Text(s['artist'] ?? '', style: const TextStyle(color: Color(0xFF7799CC))),
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
+                    title: s['title'] ?? '',
+                    artist: s['artist'] ?? '',
+                    songData: s,
+                  )));
+                },
               );
             },
           ),
