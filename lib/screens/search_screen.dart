@@ -15,58 +15,52 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _isLoading = false;
   String _error = '';
 
-  final List<String> _sources = ['wy', 'tx', 'kg', 'kw', 'mg'];
-  final Map<String, String> _sourceNames = {
-    'wy': '网易云', 'tx': 'QQ音乐', 'kg': '酷狗', 'kw': '酷我', 'mg': '咪咕'
-  };
-
   Future<void> _search() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
     setState(() { _isLoading = true; _error = ''; _results = []; });
 
-    for (final src in _sources) {
-      try {
-        final uri = Uri.parse('https://lxmusicapi.onrender.com/search/$src/$query/1/20');
-        final resp = await http.get(uri, headers: {
-          'Content-Type': 'application/json',
-          'X-Request-Key': 'share-v3',
-        }).timeout(const Duration(seconds: 10));
+    try {
+      final uri = Uri.parse('https://music.163.com/api/search/get').replace(
+        queryParameters: {'s': query, 'type': 1, 'limit': 30, 'offset': 0},
+      );
+      final resp = await http.get(uri, headers: {
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36',
+        'Referer': 'https://music.163.com/',
+      }).timeout(const Duration(seconds: 15));
 
-        if (resp.statusCode == 200) {
-          final data = jsonDecode(resp.body);
-          if (data['code'] == 0 && data['data'] != null) {
-            final songs = data['data'] is List ? data['data'] : (data['data']['list'] ?? []);
-            if (songs is List && songs.isNotEmpty) {
-              final results = <Map<String, dynamic>>[];
-              for (final s in songs) {
-                final id = s['songmid'] ?? s['hash'] ?? s['id']?.toString() ?? '';
-                if (id.isEmpty) continue;
-                results.add({
-                  'title': s['name'] ?? s['songname'] ?? '',
-                  'artist': s['singer'] ?? s['singername'] ?? s['artist'] ?? '',
-                  'album': s['album'] ?? s['albumname'] ?? '',
-                  'url': 'https://lxmusicapi.onrender.com/url/$src/$id/128k',
-                  'source': _sourceNames[src] ?? src,
-                  'songId': id,
-                  'sourceKey': src,
-                });
-              }
-              if (results.isNotEmpty) {
-                setState(() { _results = results; _isLoading = false; });
-                return;
-              }
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        final songs = data['result']?['songs'] as List? ?? [];
+        if (songs.isEmpty) {
+          setState(() { _error = '未找到相关歌曲'; _isLoading = false; });
+          return;
+        }
+        final results = <Map<String, dynamic>>[];
+        for (final s in songs) {
+          if (s['id'] == null) continue;
+          String artist = '';
+          if (s['artists'] is List) {
+            for (int i = 0; i < (s['artists'] as List).length; i++) {
+              if (i > 0) artist += ' / ';
+              artist += (s['artists'] as List)[i]['name']?.toString() ?? '';
             }
           }
+          results.add({
+            'title': s['name']?.toString() ?? '',
+            'artist': artist,
+            'album': s['album']?['name']?.toString() ?? '',
+            'songId': s['id'].toString(),
+            'source': 'wy',
+          });
         }
-      } catch (_) {}
+        setState(() { _results = results; _isLoading = false; });
+      } else {
+        setState(() { _error = '搜索失败：${resp.statusCode}'; _isLoading = false; });
+      }
+    } catch (e) {
+      setState(() { _error = '搜索失败：$e'; _isLoading = false; });
     }
-
-    // 全部失败
-    setState(() {
-      _error = '所有音源都无法连接，检查网络或代理设置';
-      _isLoading = false;
-    });
   }
 
   @override
@@ -106,13 +100,11 @@ class _SearchScreenState extends State<SearchScreen> {
                   return ListTile(
                     leading: const Icon(Icons.music_note, color: Color(0xFF4080FF)),
                     title: Text(s['title'] ?? '', style: const TextStyle(color: Color(0xFFE8EEFF))),
-                    subtitle: Text('${s['artist'] ?? ''} · ${s['source'] ?? ''}', style: const TextStyle(color: Color(0xFF7799CC))),
+                    subtitle: Text(s['artist'] ?? '', style: const TextStyle(color: Color(0xFF7799CC))),
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
                       title: s['title'] ?? '',
                       artist: s['artist'] ?? '',
-                      url: s['url'] ?? '',
                       songId: s['songId'] ?? '',
-                      sourceKey: s['sourceKey'] ?? '',
                     ))),
                   );
                 },
