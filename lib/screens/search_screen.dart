@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'player_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -34,27 +33,30 @@ class _SearchScreenState extends State<SearchScreen> {
       for (final s in songs) {
         if (s['id'] == null) continue;
         String artist = '';
-        if (s['artists'] is List) {
-          for (int i = 0; i < (s['artists'] as List).length; i++) {
-            if (i > 0) artist += ', ';
-            artist += (s['artists'] as List)[i]['name']?.toString() ?? '';
+        if (s['ar'] is List) {
+          for (int i = 0; i < (s['ar'] as List).length; i++) {
+            if (i > 0) artist += ' / ';
+            artist += (s['ar'] as List)[i]['name']?.toString() ?? '';
           }
+        }
+        String album = '';
+        if (s['al'] is Map) {
+          album = (s['al'] as Map)['name']?.toString() ?? '';
         }
         results.add({
           'title': s['name']?.toString() ?? '',
           'artist': artist,
-          'album': s['album']?['name']?.toString() ?? '',
+          'album': album,
           'url': 'https://music.163.com/song/media/outer/url?id=${s['id']}.mp3',
         });
       }
+      if (results.isEmpty) throw Exception('no');
       setState(() { _results = results; _isLoading = false; });
     } catch (e) {
-      String q = _searchController.text.trim();
       setState(() {
-        _results = [
-          {'title': q, 'artist': 'Demo', 'album': '', 'url': 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'},
-        ];
+        _results = [];
         _isLoading = false;
+        _error = 'Search failed';
       });
     }
   }
@@ -94,14 +96,7 @@ class _SearchScreenState extends State<SearchScreen> {
               return ListTile(
                 leading: const Icon(Icons.music_note, color: Color(0xFF4080FF)),
                 title: Text(s['title'] ?? '', style: const TextStyle(color: Color(0xFFE8EEFF))),
-                subtitle: Text(s['artist'] ?? '', style: const TextStyle(color: Color(0xFF7799CC))),
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
-                    title: s['title'] ?? '',
-                    artist: s['artist'] ?? '',
-                    songData: s,
-                  )));
-                },
+                subtitle: Text('${s['artist'] ?? ''} · ${s['album'] ?? ''}', style: const TextStyle(color: Color(0xFF7799CC))),
               );
             },
           ),
