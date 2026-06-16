@@ -6,17 +6,13 @@ import 'package:http/http.dart' as http;
 class PlayerScreen extends StatefulWidget {
   final String title;
   final String artist;
-  final String url;
   final String songId;
-  final String sourceKey;
 
   const PlayerScreen({
     super.key,
     required this.title,
     required this.artist,
-    required this.url,
-    this.songId = '',
-    this.sourceKey = '',
+    required this.songId,
   });
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -36,22 +32,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _start() async {
     try {
-      String playUrl = widget.url;
-      if (widget.sourceKey.isNotEmpty && widget.songId.isNotEmpty) {
-        try {
-          final uri = Uri.parse(widget.url);
-          final resp = await http.get(uri, headers: {'X-Request-Key': 'share-v3'})
-              .timeout(const Duration(seconds: 10));
-          if (resp.statusCode == 200) {
-            final data = jsonDecode(resp.body);
-            if (data['code'] == 0 && data['url'] != null) {
-              playUrl = data['url'].toString();
-            }
-          }
-        } catch (_) {}
+      // 用落雪音源API获取真实播放地址
+      final uri = Uri.parse('https://lxmusicapi.onrender.com/url/wy/${widget.songId}/128k');
+      final resp = await http.get(uri, headers: {
+        'X-Request-Key': 'share-v3',
+        'User-Agent': 'lx-music-mobile/1.0',
+      }).timeout(const Duration(seconds: 10));
+
+      if (resp.statusCode == 200) {
+        final data = jsonDecode(resp.body);
+        if (data['code'] == 0 && data['url'] != null) {
+          final playUrl = data['url'].toString();
+          await _player.play(UrlSource(playUrl));
+          if (mounted) setState(() { _isPlaying = true; _isLoading = false; });
+          return;
+        }
       }
-      await _player.play(UrlSource(playUrl));
-      if (mounted) setState(() { _isPlaying = true; _isLoading = false; });
+      throw Exception('获取播放地址失败');
     } catch (e) {
       if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
     }
