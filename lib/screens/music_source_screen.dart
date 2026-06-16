@@ -1,106 +1,97 @@
 import 'package:flutter/material.dart';
-import '../models/music_source.dart';
-import '../models/music_source.dart';
 
 class MusicSourceScreen extends StatefulWidget {
   const MusicSourceScreen({super.key});
-
   @override
   State<MusicSourceScreen> createState() => _MusicSourceScreenState();
 }
 
 class _MusicSourceScreenState extends State<MusicSourceScreen> {
-  final List<MusicSource> _sources = [
-    MusicSource(
-      name: 'YueC Default',
-      description: 'Built-in music source powered by YueC',
-      url: 'https://example.com/source.js',
-      enabled: true,
-    ),
-  ];
+  List<Map<String, dynamic>> _sources = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _sources = [
+      {'name': 'YueC Default', 'url': 'builtin', 'enabled': true, 'builtin': true},
+    ];
+  }
+
+  void _addSource() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        final controller = TextEditingController();
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1A1F4E),
+          title: const Text('Add Music Source', style: TextStyle(color: Color(0xFFE8EEFF))),
+          content: TextField(
+            controller: controller,
+            style: const TextStyle(color: Color(0xFFE8EEFF)),
+            decoration: const InputDecoration(
+              hintText: 'Source URL or name',
+              hintStyle: TextStyle(color: Color(0xFF7799CC)),
+              filled: true, fillColor: Color(0xFF0F1535),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Color(0xFF7799CC)))),
+            TextButton(onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                setState(() {
+                  _sources.add({'name': controller.text.trim(), 'url': controller.text.trim(), 'enabled': true, 'builtin': false});
+                });
+              }
+              Navigator.pop(ctx);
+            }, child: const Text('Add', style: TextStyle(color: Color(0xFF4080FF)))),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 16),
-          child: Text(
-            'Music Sources',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            const Icon(Icons.source, color: Color(0xFF4080FF)),
+            const SizedBox(width: 8),
+            const Text('Music Sources', style: TextStyle(color: Color(0xFFE8EEFF), fontSize: 18)),
+            const Spacer(),
+            IconButton(
+              icon: const Icon(Icons.add_circle, color: Color(0xFF4080FF)),
+              onPressed: _addSource,
             ),
-          ),
+          ],
         ),
-        const Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: Text(
-            'Music sources provide search and playback capabilities. Add custom JS source scripts to extend YueC.',
-            style: TextStyle(color: Colors.grey, fontSize: 14),
-          ),
-        ),
-        ..._sources.map((source) => Card(
-              color: const Color(0xFF2A2A2A),
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      ),
+      Expanded(
+        child: ListView.builder(
+          itemCount: _sources.length,
+          itemBuilder: (ctx, i) {
+            final s = _sources[i];
+            return ListTile(
+              leading: Icon(
+                s['builtin'] == true ? Icons.star : Icons.link,
+                color: s['enabled'] ? const Color(0xFF4080FF) : const Color(0xFF5566AA),
               ),
-              child: ListTile(
-                contentPadding: const EdgeInsets.all(16),
-                leading: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: source.enabled
-                        ? const Color(0xFF1DB954).withValues(alpha: 0.2)
-                        : Colors.grey.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.source,
-                    color: source.enabled
-                        ? const Color(0xFF1DB954)
-                        : Colors.grey,
-                  ),
-                ),
-                title: Text(
-                  source.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                subtitle: Text(
-                  source.description,
-                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
-                ),
-                trailing: Switch(
-                  value: source.enabled,
-                  activeColor: const Color(0xFF1DB954),
-                  onChanged: (val) {
-                    setState(() => source.enabled = val);
-                  },
-                ),
+              title: Text(s['name'] ?? '', style: TextStyle(color: s['enabled'] ? const Color(0xFFE8EEFF) : const Color(0xFF5566AA))),
+              subtitle: Text(s['url'] ?? '', style: const TextStyle(color: Color(0xFF7799CC), fontSize: 12)),
+              trailing: Switch(
+                value: s['enabled'],
+                activeColor: const Color(0xFF4080FF),
+                onChanged: (v) {
+                  setState(() { s['enabled'] = v; });
+                },
               ),
-            )),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: () {},
-          icon: const Icon(Icons.add),
-          label: const Text('Add Source'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFF1DB954),
-            side: const BorderSide(color: Color(0xFF1DB954)),
-            padding: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
+            );
+          },
         ),
-      ],
-    );
+      ),
+    ]);
   }
 }
