@@ -1,22 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class PlayerScreen extends StatefulWidget {
   final String title;
   final String artist;
-  final Map<String, String> songData;
 
-  const PlayerScreen({
-    super.key,
-    required this.title,
-    required this.artist,
-    required this.songData,
-  });
-
+  const PlayerScreen({super.key, required this.title, required this.artist});
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
+  final AudioPlayer _player = AudioPlayer();
+  bool _isPlaying = false;
+  bool _isLoading = true;
+  String _error = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _play();
+  }
+
+  Future<void> _play() async {
+    try {
+      await _player.play(UrlSource('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'));
+      if (mounted) setState(() { _isPlaying = true; _isLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _error = e.toString(); _isLoading = false; });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -27,18 +41,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 60),
-            const Icon(Icons.music_note, size: 100, color: Color(0xFF4080FF)),
-            const SizedBox(height: 32),
-            Text(widget.title, style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 22)),
-            const SizedBox(height: 8),
-            Text(widget.artist, style: const TextStyle(color: Color(0xFF7799CC), fontSize: 16)),
-          ],
-        ),
+        child: _isLoading
+          ? const CircularProgressIndicator(color: Color(0xFF4080FF))
+          : _error.isNotEmpty
+            ? Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(_error, style: const TextStyle(color: Colors.red, fontSize: 16), textAlign: TextAlign.center),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.music_note, size: 120, color: Color(0xFF4080FF)),
+                  const SizedBox(height: 32),
+                  Text(widget.title, style: const TextStyle(color: Color(0xFFE8EEFF), fontSize: 24)),
+                  const SizedBox(height: 8),
+                  Text(widget.artist, style: const TextStyle(color: Color(0xFF7799CC), fontSize: 18)),
+                  const SizedBox(height: 48),
+                  IconButton(
+                    icon: Icon(
+                      _isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
+                      size: 72, color: const Color(0xFF4080FF),
+                    ),
+                    onPressed: () {
+                      if (_isPlaying) { _player.pause(); setState(() => _isPlaying = false); }
+                      else { _player.resume(); setState(() => _isPlaying = true); }
+                    },
+                  ),
+                ],
+              ),
       ),
     );
   }
+
+  @override
+  void dispose() { _player.dispose(); super.dispose(); }
 }
