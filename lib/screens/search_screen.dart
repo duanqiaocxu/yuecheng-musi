@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/music_service.dart';
-import 'player_screen.dart';
+import 'package:dio/dio.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -10,7 +9,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final MusicService _musicService = MusicService();
+  final Dio _dio = Dio();
   List<Map<String, String>> _results = [];
   bool _isLoading = false;
   String _error = '';
@@ -19,11 +18,34 @@ class _SearchScreenState extends State<SearchScreen> {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
     setState(() { _isLoading = true; _error = ''; _results = []; });
+
     try {
-      final results = await _musicService.search(query);
+      // QQ音乐搜索
+      final response = await _dio.get(
+        'https://c.y.qq.com/soso/fcgi-bin/client_search_cp',
+        queryParameters: {'w': query, 'p': 1, 'n': 20, 'format': 'json'},
+      );
+      final songList = response.data?['data']?['song']?['list'] as List? ?? [];
+      if (songList.isEmpty) throw Exception('No results');
+
+      final List<Map<String, String>> results = [];
+      for (final s in songList) {
+        String artist = '';
+        if (s['singer'] is List) {
+          for (int i = 0; i < (s['singer'] as List).length; i++) {
+            if (i > 0) artist += ', ';
+            artist += (s['singer'] as List)[i]['name']?.toString() ?? '';
+          }
+        }
+        results.add({
+          'title': s['songname']?.toString() ?? '',
+          'artist': artist,
+          'album': s['albumname']?.toString() ?? '',
+        });
+      }
       setState(() { _results = results; _isLoading = false; });
     } catch (e) {
-      setState(() { _error = 'Search failed: $e'; _isLoading = false; });
+      setState(() { _error = 'Search failed'; _isLoading = false; });
     }
   }
 
@@ -62,10 +84,7 @@ class _SearchScreenState extends State<SearchScreen> {
               return ListTile(
                 leading: const Icon(Icons.music_note, color: Color(0xFF4080FF)),
                 title: Text(s['title'] ?? '', style: const TextStyle(color: Color(0xFFE8EEFF))),
-                subtitle: Text('${s['artist'] ?? ''} - ${s['album'] ?? ''}', style: const TextStyle(color: Color(0xFF7799CC))),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
-                  title: s['title'] ?? '', artist: s['artist'] ?? '', songData: s,
-                ))),
+                subtitle: Text(s['artist'] ?? '', style: const TextStyle(color: Color(0xFF7799CC))),
               );
             },
           ),
